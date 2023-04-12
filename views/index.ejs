@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WorkBuddy</title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/login">Login</a>
+        <a href="/signup">Sign Up</a>
+        <a href="contact-us">Contact Us</a>
+      </nav>
+      <img src="/images/logo.png" alt="WorkBuddy Logo">
+    </header>
+    
+    <main>
+      <h1>Welcome to WorkBuddy</h1>
+      <p>Click the green button to start your shift</p>
+      <button id="start-shift-btn" disabled>Start Shift</button>
+      <button id="end-shift-btn" disabled>End Shift</button>
+      <p id="status-message"></p>
+    </main>
+
+    <script src="/routes/main.js"></script>
+  </body>
+</html>
