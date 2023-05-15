@@ -68,21 +68,22 @@ const port = process.env.PORT || 8000;
 // const mysql = require('mysql');
 
 // Create connection pool
-const connection = mysql.createConnection({
+const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: 'jouhoune1',
   database: 'WorkBuddy',
 });
 
-connection.connect((err) => {
-    if (err) {
-      console.error(`Error connecting to the database: ${err.stack}`);
-      return;
-    }
+// pool.getConnection((err, connection) => {
+//   if (err) {
+//     console.error(`Error connecting to the database: ${err.stack}`);
+//     return;
+//   }
+
+//   console.log(`Connected to the database with ID: ${connection.threadId}`);
+
   
-    console.log(`Connected to database with ID: ${connection.threadId}`);
-  });
   
 // Define function to start shift
 function startShift(employeeId, latitude, longitude, callback) {
@@ -180,7 +181,7 @@ app.set('view engine', 'ejs');
 // Configure middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
-
+app.use(express.json());
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 
@@ -197,9 +198,17 @@ var appData = {shopName: "WorkBuddy"}
 // // Requires the main.js file inside the routes folder passing in the Express app and data as arguments.  All the routes will go in this file
 require("./routes/main")(app, appData);
 
-
-
 app.post('/start-shift', (req, res) => {
+
+  pool.getConnection((err, connection) => {
+    if (err) {
+      console.error(`Error connecting to the database: ${err.stack}`);
+      return res.status(500).send('Internal Server Error');
+    }
+
+  // Log that the "Start Shift" button was pressed
+  console.log('Start Shift button pressed');
+
   // Retrieve employee's coordinates from the request body
   const { latitude, longitude } = req.body;
 
@@ -238,6 +247,16 @@ app.post('/start-shift', (req, res) => {
 });
 
 app.post('/end-shift', (req, res) => {
+
+  pool.getConnection((err, connection) => {
+    if (err) {
+      console.error(`Error connecting to the database: ${err.stack}`);
+      return res.status(500).send('Internal Server Error');
+    }
+
+    // Log that the "End Shift" button was pressed
+    console.log('End Shift button pressed');
+    
   // Mark employee as ended and return success message
   connection.query('UPDATE shifts SET end_time = ? WHERE employee_id = ? AND end_time IS NULL', [new Date(), 1], (error, results) => {
     if (error) {
@@ -247,6 +266,8 @@ app.post('/end-shift', (req, res) => {
     res.send('Shift ended successfully.');
   });
 });
+});
+});
 
 // Start server
 // app.listen(process.env.PORT, () => {
@@ -255,5 +276,3 @@ app.post('/end-shift', (req, res) => {
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
-
-  
