@@ -44,7 +44,7 @@
 // var appData = {shopName: "Bertie's Books"}
 
 // // Requires the main.js file inside the routes folder passing in the Express app and data as arguments.  All the routes will go in this file
- //require("./routes/main")(app, appData);
+//require("./routes/main")(app, appData);
 
 // // Start the web app listening
 // app.listen(port, () => console.log(`Example app listening on port ${port}!`))
@@ -69,37 +69,79 @@ const port = process.env.PORT || 8000;
 // Import mysql library
 // const mysql = require('mysql');
 
-// Create connection pool
-const pool = mysql.createPool({
+// Create connection db
+const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: 'jouhoune1',
   database: 'WorkBuddy',
 });
 
-// pool.getConnection((err, connection) => {
-//   if (err) {
-//     console.error(`Error connecting to the database: ${err.stack}`);
-//     return;
-//   }
+  // Connect to the database
+  db.connect((err) => {
+    if (err) {
+      console.error('Error connecting to database:', err);
+    } else {
+      console.log('Connected to database');
+    }
+  });
 
-//   console.log(`Connected to the database with ID: ${connection.threadId}`);
-
-  
-  
-// Define function to start shift
-function startShift(employeeId, latitude, longitude, callback) {
+// db.getConnection((err, connection) => {
+  //   if (err) {
+    //     console.error(`Error connecting to the database: ${err.stack}`);
+    //     return;
+    //   }
+    
+    //   console.log(`Connected to the database with ID: ${connection.threadId}`);
+    
+    
+    // Initialize Express application
+    const app = express();
+    
+    // Tell Express that we want to use EJS as the templating engine
+    app.set('view engine', 'ejs');
+    
+    // Configure middleware
+    app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.urlencoded({ extended: true }));
+    app.use(express.json());
+    // Serve static files from the 'public' directory
+    app.use(express.static('public'));
+    
+    // log all HTTP requests and responses to the console
+    app.use(morgan('combined'));
+    
+    // // Define routes
+    // app.get('/', (req, res) => {
+    //   res.render('index');
+    // });
+    
+    var appData = {shopName: "WorkBuddy"}
+    
+    // // Requires the main.js file inside the routes folder passing in the Express app and data as arguments.  All the routes will go in this file
+    require("./routes/main")(app, appData);
+    
+    app.post('/start-shift', (req, res) => {
+    
+      db.getConnection((err, connection) => {
+        if (err) {
+          console.error(`Error connecting to the database: ${err.stack}`);
+          return res.status(500).send('Internal Server Error');
+        }
+    
+    // Define function to start shift
+    function startShift(employeeId, latitude, longitude, callback) {
   // Define SQL query to check if employee is within geofence
   const isWithinGeofenceQuery = `SELECT ST_WITHIN(POINT(${longitude}, ${latitude}), geofence) AS isWithinGeofence FROM companies WHERE id = (SELECT company_id FROM employees WHERE id = ${employeeId})`;
-
+  
   // Execute query to check if employee is within geofence
-  pool.query(isWithinGeofenceQuery, (error, results) => {
+  db.query(isWithinGeofenceQuery, (error, results) => {
     if (error) {
       // Handle error
       callback(error);
       return;
     }
-
+    
     // Check if employee is within geofence
     const isWithinGeofence = results[0].isWithinGeofence;
     if (!isWithinGeofence) {
@@ -112,7 +154,7 @@ function startShift(employeeId, latitude, longitude, callback) {
     const startShiftQuery = `INSERT INTO shifts (employee_id, start_time) VALUES (${employeeId}, NOW())`;
 
     // Execute query to start shift
-    pool.query(startShiftQuery, (error, results) => {
+    db.query(startShiftQuery, (error, results) => {
       if (error) {
         // Handle error
         callback(error);
@@ -131,7 +173,7 @@ function endShift(employeeId, latitude, longitude, callback) {
   const isWithinGeofenceQuery = `SELECT ST_WITHIN(POINT(${longitude}, ${latitude}), geofence) AS isWithinGeofence FROM companies WHERE id = (SELECT company_id FROM employees WHERE id = ${employeeId})`;
 
   // Execute query to check if employee is within geofence
-  pool.query(isWithinGeofenceQuery, (error, results) => {
+  db.query(isWithinGeofenceQuery, (error, results) => {
     if (error) {
       // Handle error
       callback(error);
@@ -150,7 +192,7 @@ function endShift(employeeId, latitude, longitude, callback) {
     const endShiftQuery = `UPDATE shifts SET end_time = NOW() WHERE employee_id = ${employeeId} AND end_time IS NULL`;
 
     // Execute query to end shift
-    pool.query(endShiftQuery, (error, results) => {
+    db.query(endShiftQuery, (error, results) => {
       if (error) {
         // Handle error
         callback(error);
@@ -174,39 +216,6 @@ function endShift(employeeId, latitude, longitude, callback) {
 module.exports = { startShift, endShift };
 
 
-// Initialize Express application
-const app = express();
-
-// Tell Express that we want to use EJS as the templating engine
-app.set('view engine', 'ejs');
-
-// Configure middleware
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-// Serve static files from the 'public' directory
-app.use(express.static('public'));
-
-// log all HTTP requests and responses to the console
-app.use(morgan('combined'));
-
-// // Define routes
-// app.get('/', (req, res) => {
-//   res.render('index');
-// });
-
-var appData = {shopName: "WorkBuddy"}
-
-// // Requires the main.js file inside the routes folder passing in the Express app and data as arguments.  All the routes will go in this file
-require("./routes/main")(app, appData);
-
-app.post('/start-shift', (req, res) => {
-
-  pool.getConnection((err, connection) => {
-    if (err) {
-      console.error(`Error connecting to the database: ${err.stack}`);
-      return res.status(500).send('Internal Server Error');
-    }
 
   // Log that the "Start Shift" button was pressed
   console.log('Start Shift button pressed');
@@ -250,7 +259,7 @@ app.post('/start-shift', (req, res) => {
 
 app.post('/end-shift', (req, res) => {
 
-  pool.getConnection((err, connection) => {
+  db.getConnection((err, connection) => {
     if (err) {
       console.error(`Error connecting to the database: ${err.stack}`);
       return res.status(500).send('Internal Server Error');
